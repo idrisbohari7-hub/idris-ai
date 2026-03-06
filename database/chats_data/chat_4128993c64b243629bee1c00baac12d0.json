@@ -1,0 +1,29 @@
+{
+  "session_id": "4128993c-64b2-4362-9bee-1c00baac12d0",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hey"
+    },
+    {
+      "role": "assistant",
+      "content": "Good evening IDRIS BOHARI, how can I assist you tonight?"
+    },
+    {
+      "role": "user",
+      "content": "ask me questions to train yourself"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, what do you like to do in your free time?"
+    },
+    {
+      "role": "user",
+      "content": "why you ask same question every time"
+    },
+    {
+      "role": "assistant",
+      "content": "I sometimes repeat questions to clarify or confirm information, IDRIS BOHARI. However, I should be able to access our conversation history and ask more varied and relevant questions. Let me try again. What's been the most interesting thing you've done recently?"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "session_id": "ef67b743-0356-44b0-af9c-af11d6509fec",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What can you do?"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, I can help with a wide range of tasks, from answering questions and providing information to generating images, playing music, and writing content. I can also open apps and websites for you."
+    },
+    {
+      "role": "user",
+      "content": "what is my birth date"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, your birthday is on November 22, 2008."
+    },
+    {
+      "role": "user",
+      "content": "my favourite 3 characters"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, your favorite characters are the Professor from Money Heist, and you also mentioned Berlin, but initially, you said you liked a character and then corrected me saying it's not Tokyo, but you didn't specify the third one."
+    },
+    {
+      "role": "user",
+      "content": "what is net worth of Elon Musk"
+    },
+    {
+      "role": "assistant",
+      "content": ""
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "session_id": "c887cb37-0c2c-4d90-98d6-349cd8595476",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What can you do?"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOH"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "session_id": "65a74e3d-6bf7-4334-8705-3da86cbf9325",
+  "messages": [
+    {
+      "role": "user",
+      "content": "what is idris birth date"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, your birthday is on November 22, 2008."
+    },
+    {
+      "role": "user",
+      "content": "computer"
+    },
+    {
+      "role": "assistant",
+      "content": "A computer is an electronic device that processes information and performs tasks. It can be defined as a device that computes, especially a programmable electronic machine that performs high-speed mathematical or logical operations."
+    },
+    {
+      "role": "user",
+      "content": "current time"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, the current time is 11:17:00, on Saturday, 28th February 2026."
+    }
+  ]
+}

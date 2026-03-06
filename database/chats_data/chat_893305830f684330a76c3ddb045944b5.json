@@ -1,0 +1,21 @@
+{
+  "session_id": "89330583-0f68-4330-a76c-3ddb045944b5",
+  "messages": [
+    {
+      "role": "user",
+      "content": "when does my birthday come"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, your birthday is on November 22, 2008."
+    },
+    {
+      "role": "user",
+      "content": "who is fav charecter fom money heist"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, I recall that your favorite character in Money Heist is the Professor, also known as Sergio Marquina."
+    }
+  ]
+}

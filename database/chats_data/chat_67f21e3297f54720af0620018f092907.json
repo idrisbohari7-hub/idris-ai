@@ -1,0 +1,29 @@
+{
+  "session_id": "67f21e32-97f5-4720-af06-20018f092907",
+  "messages": [
+    {
+      "role": "user",
+      "content": "remember my bithday is on 22 nov 2008"
+    },
+    {
+      "role": "assistant",
+      "content": "I've taken note of your birthday, IDRIS BOHARI, which falls on 22 November 2008. I'll keep that in mind for any future conversations. You are currently 17 years old."
+    },
+    {
+      "role": "user",
+      "content": "yes"
+    },
+    {
+      "role": "assistant",
+      "content": "I'll keep your details on record, IDRIS BOHARI."
+    },
+    {
+      "role": "user",
+      "content": "now delete that my bithday is on 22 nov 2008"
+    },
+    {
+      "role": "assistant",
+      "content": "I've removed the record of your birthday, IDRIS BOHARI. It is no longer stored."
+    }
+  ]
+}

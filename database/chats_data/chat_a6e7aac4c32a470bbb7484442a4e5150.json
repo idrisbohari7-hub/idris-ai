@@ -1,0 +1,29 @@
+{
+  "session_id": "a6e7aac4-c32a-470b-bb74-84442a4e5150",
+  "messages": [
+    {
+      "role": "user",
+      "content": "net worth of Mukesh Ambani"
+    },
+    {
+      "role": "assistant",
+      "content": "Mukesh Ambani's net worth is $98.5 billion as of 2026, making him the richest person in Asia and one of the wealthiest globally, with his wealth primarily stemming from his significant holdings in Reliance Industries."
+    },
+    {
+      "role": "user",
+      "content": "name three animals"
+    },
+    {
+      "role": "assistant",
+      "content": "Three common animals are dog, cat, and rabbit, which are often found as pets in many households around the world."
+    },
+    {
+      "role": "user",
+      "content": "tell me a fun fact"
+    },
+    {
+      "role": "assistant",
+      "content": "Giraffes have the highest blood pressure of any animal, which helps them pump blood all the way up to their brains against gravity, allowing them to run and play with their long necks held high."
+    }
+  ]
+}

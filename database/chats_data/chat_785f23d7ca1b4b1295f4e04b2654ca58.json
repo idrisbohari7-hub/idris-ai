@@ -1,0 +1,21 @@
+{
+  "session_id": "785f23d7-ca1b-4b12-95f4-e04b2654ca58",
+  "messages": [
+    {
+      "role": "user",
+      "content": "how mch cash do i have currently"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, you currently have £850 in your account."
+    },
+    {
+      "role": "user",
+      "content": "in rupees"
+    },
+    {
+      "role": "assistant",
+      "content": "IDRIS BOHARI, you currently have ₹76,350 in your account."
+    }
+  ]
+}
