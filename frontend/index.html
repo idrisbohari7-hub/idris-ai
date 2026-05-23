@@ -171,7 +171,15 @@
                     <!-- MIC BUTTON: Two SVG states. .mic-icon = outline
                          (idle). .mic-icon-active = filled square (recording).
                          CSS/JS toggles visibility based on state. -->
-                    <button class="action-btn mic-btn" id="mic-btn" title="Voice input">
+                    <button class="action-btn voice-mode-btn" id="voice-mode-btn" title="Voice assistant (hands-free, interrupt anytime)">
+                        <svg class="voice-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                            <path d="M12 18v4"/><path d="M8 22h8"/>
+                            <path d="M7 10h2"/><path d="M15 10h2"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn mic-btn" id="mic-btn" title="Voice input (push to talk)">
                         <!-- Microphone outline: mic body + stand -->
                         <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
@@ -207,6 +215,7 @@
             </div>
             <div class="input-meta">
                 <span class="mode-label" id="mode-label">General Mode</span>
+                <span class="voice-status" id="voice-status" aria-live="polite"></span>
                 <span class="char-count" id="char-count"></span>
             </div>
         </footer>
@@ -237,6 +246,7 @@
          script.js may reference OrbRenderer at load time.
          ============================================================ -->
     <script src="orb.js"></script>
+    <script src="voice.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

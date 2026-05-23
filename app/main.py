@@ -262,7 +262,7 @@ def generate_tts_sync(text: str, voice: str, rate: str) -> bytes:
     return asyncio.run(_inner())
 _tts_pool = ThreadPoolExecutor(max_workers=4)
 
-def _stream_generator(session_id: str, chunk_iter, is_realtime: bool, tts_enabled: bool = False):
+async def _stream_generator(http_request: Request, session_id: str, chunk_iter, is_realtime: bool, tts_enabled: bool = False):
 
     yield f"data: {json.dumps({'session_id': session_id, 'chunk': '', 'done': False})}\n\n"
 
@@ -288,6 +288,12 @@ def _stream_generator(session_id: str, chunk_iter, is_realtime: bool, tts_enable
     try:
 
         for chunk in chunk_iter:
+
+            if await http_request.is_disconnected():
+                for fut, _ in audio_queue:
+                    fut.cancel()
+                logger.info("[STREAM] Client disconnected — stopping session %s", session_id[:12])
+                return
 
             if isinstance(chunk, dict) and "_search_results" in chunk:
                 yield f"data: {json.dumps({'search_results': chunk['_search_results']})}\n\n"
@@ -371,7 +377,7 @@ def _stream_generator(session_id: str, chunk_iter, is_realtime: bool, tts_enable
     yield f"data: {json.dumps({'chunk':'', 'done': True, 'session_id': session_id})}\n\n"
 
 @app.post("/chat/stream")
-async def chat_stream(request: ChatRequest):
+async def chat_stream(request: ChatRequest, http_request: Request):
 
     if not chat_service:
         raise HTTPException(status_code=503, detail="Chat service not initialized")
@@ -383,7 +389,7 @@ async def chat_stream(request: ChatRequest):
         session_id = chat_service.get_or_create_session(request.session_id or None)
         chunk_iter = chat_service.process_message_stream(session_id, request.message)
         return StreamingResponse(
-        _stream_generator(session_id, chunk_iter, is_realtime=False, tts_enabled=request.tts),
+        _stream_generator(http_request, session_id, chunk_iter, is_realtime=False, tts_enabled=request.tts),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
@@ -439,7 +445,7 @@ async def chat_realtime(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
 
 @app.post("/chat/realtime/stream")
-async def chat_realtime_stream(request: ChatRequest):
+async def chat_realtime_stream(request: ChatRequest, http_request: Request):
 
     if not chat_service or not realtime_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
@@ -453,7 +459,7 @@ async def chat_realtime_stream(request: ChatRequest):
         session_id = chat_service.get_or_create_session(request.session_id or None)
         chunk_iter = chat_service.process_realtime_message_stream(session_id, request.message)
         return StreamingResponse(
-            _stream_generator(session_id, chunk_iter, is_realtime=True, tts_enabled=request.tts),
+            _stream_generator(http_request, session_id, chunk_iter, is_realtime=True, tts_enabled=request.tts),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )

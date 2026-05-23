@@ -105,6 +105,17 @@ let recognition = null;
  */
 let ttsPlayer = null;
 
+/*
+ * streamAbortController — Cancels the active SSE fetch when the user
+ * interrupts in voice mode (barge-in).
+ */
+let streamAbortController = null;
+
+/*
+ * voiceAssistant — ChatGPT-style continuous voice with interruption.
+ */
+let voiceAssistant = null;
+
 /* ================================================================
    DOM REFERENCES
    ================================================================
@@ -140,6 +151,8 @@ const searchResultsClose = $("search-results-close"); // Close button inside the
 const searchResultsQuery = $("search-results-query"); // Displays the search query
 const searchResultsAnswer = $("search-results-answer"); // Displays the AI answer from search
 const searchResultsList = $("search-results-list"); // Container for source result cards
+const voiceModeBtn = $("voice-mode-btn"); // Toggle hands-free voice assistant mode
+const voiceStatusEl = $("voice-status"); // Status line under input (Listening / Speaking…)
 
 /* ================================================================
    TTS AUDIO PLAYER (Text-to-Speech Queue System)
@@ -184,6 +197,7 @@ class TTSPlayer {
     this.playing = false;
     this.enabled = true; // TTS on by default
     this.stopped = false;
+    this.onIdle = null; // Called when queue drained (voice mode resume listen)
     this.audio = document.createElement("audio");
     this.audio.preload = "auto";
   }
@@ -324,6 +338,7 @@ class TTSPlayer {
     if (ttsBtn) ttsBtn.classList.remove("tts-speaking");
     if (orbContainer) orbContainer.classList.remove("speaking");
     if (orb) orb.setActive(false);
+    if (this.onIdle) this.onIdle();
   }
 
   /**
@@ -368,13 +383,40 @@ class TTSPlayer {
    ================================================================ */
 function init() {
   ttsPlayer = new TTSPlayer();
+  ttsPlayer.onIdle = () => {
+    if (voiceAssistant && voiceAssistant.enabled && !isStreaming) {
+      voiceAssistant.onTurnComplete();
+    }
+  };
   if (ttsBtn) ttsBtn.classList.add("tts-active"); // Show TTS as on by default
   setGreeting();
   initOrb();
   initSpeech();
+  initVoiceAssistant();
   checkHealth();
   bindEvents();
   autoResizeInput();
+}
+
+/**
+ * initVoiceAssistant() — Hands-free voice mode with barge-in interruption.
+ */
+function initVoiceAssistant() {
+  if (typeof VoiceAssistant === "undefined") return;
+  voiceAssistant = new VoiceAssistant({
+    recognition,
+    ttsPlayer,
+    ttsBtn,
+    voiceModeBtn,
+    voiceStatusEl,
+    messageInput,
+    autoResizeInput,
+    get isStreaming() {
+      return isStreaming;
+    },
+    onSend: (text) => sendMessage(text),
+    onInterrupt: (active) => interruptAssistant(active),
+  });
 }
 
 /* ================================================================
@@ -478,26 +520,39 @@ function initSpeech() {
   }
 
   recognition = new SR();
-  recognition.continuous = false; // Stop after one complete utterance
-  recognition.interimResults = true; // Emit partial results for real-time feedback
-  recognition.lang = "en-US"; // Recognition language
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
 
-  // Fired every time the recognizer has a new or updated result
   recognition.onresult = (e) => {
-    const result = e.results[e.results.length - 1]; // Get the latest result
-    const text = result[0].transcript; // The recognized text string
-    messageInput.value = text; // Show it in the input field
-    autoResizeInput(); // Resize textarea to fit
+    if (voiceAssistant && voiceAssistant.enabled) {
+      voiceAssistant.handleSpeechResult(e);
+      return;
+    }
+    const result = e.results[e.results.length - 1];
+    const text = result[0].transcript;
+    messageInput.value = text;
+    autoResizeInput();
     if (result.isFinal) {
-      // The browser has finalized this utterance — send it
       stopListening();
       if (text.trim()) sendMessage(text.trim());
     }
   };
-  recognition.onerror = () => stopListening(); // Stop on any recognition error
+  recognition.onerror = (ev) => {
+    if (voiceAssistant && voiceAssistant.enabled) {
+      if (ev.error === "no-speech" || ev.error === "aborted") return;
+      voiceAssistant._startRecognition();
+      return;
+    }
+    stopListening();
+  };
   recognition.onend = () => {
+    if (voiceAssistant && voiceAssistant.enabled) {
+      if (voiceAssistant.state === "listening") voiceAssistant._startRecognition();
+      return;
+    }
     if (isListening) stopListening();
-  }; // Clean up if recognition ends unexpectedly
+  };
 }
 
 /**
@@ -508,8 +563,39 @@ function initSpeech() {
  *   - Does nothing if we're currently streaming a response (to avoid
  *     accidentally sending a voice message mid-stream).
  */
+/**
+ * interruptAssistant() — Stop TTS and cancel the in-flight SSE stream.
+ * Used when the user speaks over the assistant in voice mode.
+ */
+function interruptAssistant(showNotice) {
+  if (streamAbortController) {
+    streamAbortController.abort();
+    streamAbortController = null;
+  }
+  if (ttsPlayer) ttsPlayer.stop();
+  isStreaming = false;
+  sendBtn.disabled = false;
+  removeTypingIndicator();
+  if (showNotice) {
+    const note = document.getElementById("interrupt-msg");
+    if (note) note.remove();
+    const el = addMessage("assistant", "");
+    el.id = "interrupt-msg";
+    el.querySelector(".msg-content").textContent = "(Interrupted — listening…)";
+    setTimeout(() => {
+      const m = document.getElementById("interrupt-msg");
+      if (m) m.remove();
+    }, 1200);
+  }
+}
+
 function startListening() {
-  if (!recognition || isStreaming) return;
+  if (!recognition) return;
+  if (voiceAssistant && voiceAssistant.enabled) {
+    voiceAssistant.toggle();
+    return;
+  }
+  if (isStreaming) return;
   isListening = true;
   micBtn.classList.add("listening"); // Visual feedback: highlight the mic button
   try {
@@ -597,10 +683,23 @@ function bindEvents() {
     charCount.textContent = len > 100 ? `${len.toLocaleString()} / 32,000` : "";
   });
 
-  // MIC BUTTON — Toggle speech recognition on/off
+  // MIC BUTTON — Push-to-talk (or toggles voice mode if voice btn used)
   micBtn.addEventListener("click", () => {
+    if (voiceAssistant && voiceAssistant.enabled) {
+      voiceAssistant.disable();
+      return;
+    }
     isListening ? stopListening() : startListening();
   });
+
+  // VOICE MODE — Hands-free assistant with barge-in
+  if (voiceModeBtn) {
+    voiceModeBtn.addEventListener("click", () => {
+      if (!voiceAssistant) return;
+      voiceAssistant.toggle();
+      if (ttsPlayer) ttsPlayer.unlock();
+    });
+  }
 
   // TTS BUTTON — Toggle text-to-speech on/off
   ttsBtn.addEventListener("click", () => {
@@ -698,6 +797,11 @@ function setMode(mode) {
  *   6. Update the greeting text (in case time-of-day changed).
  */
 function newChat() {
+  if (voiceAssistant) voiceAssistant.disable();
+  if (streamAbortController) {
+    streamAbortController.abort();
+    streamAbortController = null;
+  }
   if (ttsPlayer) ttsPlayer.stop();
   sessionId = null;
   chatMessages.innerHTML = "";
@@ -1067,9 +1171,8 @@ function scrollToBottom() {
  *  10. On error, show an error message in the chat.
  */
 async function sendMessage(textOverride) {
-  // Step 1: Get the message text, trimming whitespace
   const text = (textOverride || messageInput.value).trim();
-  if (!text || isStreaming) return; // Ignore empty messages or if already streaming
+  if (!text || isStreaming) return;
 
   // Step 2: Clear the input field immediately (responsive UX)
   messageInput.value = "";
@@ -1084,25 +1187,32 @@ async function sendMessage(textOverride) {
   isStreaming = true;
   sendBtn.disabled = true;
 
-  // Step 5: Reset TTS for this new response and unlock audio (iOS)
   if (ttsPlayer) {
     ttsPlayer.reset();
     ttsPlayer.unlock();
   }
 
-  // Step 6: Choose the endpoint based on the current mode
+  if (voiceAssistant && voiceAssistant.enabled) {
+    voiceAssistant.onProcessingStart();
+  }
+
+  streamAbortController = new AbortController();
+  const abortSignal = streamAbortController.signal;
+
   const endpoint =
     currentMode === "realtime" ? "/chat/realtime/stream" : "/chat/stream";
 
+  let wasInterrupted = false;
+
   try {
-    // Step 7: Send the POST request to the backend
     const res = await fetch(`${API}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: abortSignal,
       body: JSON.stringify({
-        message: text, // The user's message
-        session_id: sessionId, // null on first message; UUID after that
-        tts: !!(ttsPlayer && ttsPlayer.enabled), // Tell the backend whether to generate audio
+        message: text,
+        session_id: sessionId,
+        tts: !!(ttsPlayer && ttsPlayer.enabled),
       }),
     });
 
@@ -1128,9 +1238,18 @@ async function sendMessage(textOverride) {
     let cursorEl = null; // The blinking "|" cursor shown during streaming
 
     // Step 9: Read the stream in a loop until it's done
+    let ttsStarted = false;
+
     while (true) {
+      if (abortSignal.aborted) {
+        wasInterrupted = true;
+        try {
+          await reader.cancel();
+        } catch (_) {}
+        break;
+      }
       const { done, value } = await reader.read();
-      if (done) break; // Stream has ended
+      if (done) break;
 
       // Decode the bytes and add to our SSE buffer
       sseBuffer += decoder.decode(value, { stream: true });
@@ -1175,9 +1294,12 @@ async function sendMessage(textOverride) {
             scrollToBottom();
           }
 
-          // AUDIO CHUNK — Enqueue for TTS playback
           if (data.audio && ttsPlayer) {
             ttsPlayer.enqueue(data.audio);
+            if (!ttsStarted && voiceAssistant && voiceAssistant.enabled) {
+              ttsStarted = true;
+              voiceAssistant.onSpeakingStart();
+            }
           }
 
           // ERROR — The server reported an error in the stream
@@ -1196,17 +1318,27 @@ async function sendMessage(textOverride) {
     // Step 10: Clean up — remove the blinking cursor
     if (cursorEl) cursorEl.remove();
 
-    // If the server sent nothing, show a placeholder
     const textSpan = contentEl.querySelector(".msg-stream-text");
-    if (textSpan && !fullResponse) textSpan.textContent = "(No response)";
+    if (textSpan && !fullResponse && !wasInterrupted)
+      textSpan.textContent = "(No response)";
   } catch (err) {
-    // On any error, remove the typing indicator and show the error
-    removeTypingIndicator();
-    addMessage("assistant", `Something went wrong: ${err.message}`);
+    if (err.name === "AbortError") {
+      wasInterrupted = true;
+    } else {
+      removeTypingIndicator();
+      addMessage("assistant", `Something went wrong: ${err.message}`);
+    }
   } finally {
-    // Always unlock the UI, whether the request succeeded or failed
+    streamAbortController = null;
     isStreaming = false;
     sendBtn.disabled = false;
+    if (voiceAssistant && voiceAssistant.enabled) {
+      if (wasInterrupted) {
+        voiceAssistant.onTurnComplete();
+      } else if (!ttsPlayer || (!ttsPlayer.playing && ttsPlayer.queue.length === 0)) {
+        voiceAssistant.onTurnComplete();
+      }
+    }
   }
 }
 
